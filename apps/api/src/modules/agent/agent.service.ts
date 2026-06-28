@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
-import { ApiError, HTTP_STATUS } from '@agentflow/shared';
-
-const prisma = new PrismaClient();
+import { prisma } from '@agentflow/database';
+import { HTTP_STATUS } from '@agentflow/shared';
+import { AppError } from '../../middleware/error.middleware.js';
 
 export class AgentService {
   /**
@@ -33,7 +32,7 @@ export class AgentService {
     });
 
     if (!agent) {
-      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Agent not found');
+      throw new AppError('Agent not found', HTTP_STATUS.NOT_FOUND);
     }
 
     return agent;
@@ -43,6 +42,9 @@ export class AgentService {
    * Create a new agent
    */
   static async createAgent(orgId: string, userId: string, data: { name: string; description?: string; persona: string; modelId: string; tools: any[] }) {
+    const { BillingService } = await import('../billing/billing.service.js');
+    await BillingService.checkLimit(orgId, 'agents');
+
     return prisma.agent.create({
       data: {
         name: data.name,
@@ -62,7 +64,7 @@ export class AgentService {
   static async updateAgent(orgId: string, agentId: string, data: Partial<{ name: string; description: string; persona: string; modelId: string; tools: any[]; isActive: boolean }>) {
     const existing = await prisma.agent.findUnique({ where: { id: agentId, orgId } });
     if (!existing) {
-      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Agent not found');
+      throw new AppError('Agent not found', HTTP_STATUS.NOT_FOUND);
     }
 
     return prisma.agent.update({
@@ -77,7 +79,7 @@ export class AgentService {
   static async deleteAgent(orgId: string, agentId: string) {
     const existing = await prisma.agent.findUnique({ where: { id: agentId, orgId } });
     if (!existing) {
-      throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Agent not found');
+      throw new AppError('Agent not found', HTTP_STATUS.NOT_FOUND);
     }
 
     return prisma.agent.delete({

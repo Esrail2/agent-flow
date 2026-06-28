@@ -17,12 +17,14 @@ import {
   Users,
   ChevronRight,
   ExternalLink,
+  CreditCard,
 } from 'lucide-react';
 
 const navItems = [
   { name: 'Overview', href: '/admin', icon: LayoutDashboard },
   { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
   { name: 'Users', href: '/admin/users', icon: Users },
+  { name: 'Billing', href: '/admin/billing', icon: CreditCard },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

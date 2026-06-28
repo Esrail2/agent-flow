@@ -20,13 +20,16 @@ export const getWorkflows = async (req: Request, res: Response) => {
 };
 
 export const createWorkflow = async (req: Request, res: Response) => {
-  const orgId = req.user!.orgId;
-  const userId = req.user!.id;
+  const orgId = req.user!.orgId!;
+  const userId = req.user!.userId;
   const { name, description } = req.body;
 
   if (!name) {
     throw new AppError('Name is required', HTTP_STATUS.BAD_REQUEST);
   }
+
+  const { BillingService } = await import('../billing/billing.service.js');
+  await BillingService.checkLimit(orgId, 'workflows');
 
   const workflow = await prisma.workflow.create({
     data: {
@@ -43,7 +46,7 @@ export const createWorkflow = async (req: Request, res: Response) => {
 
 export const getWorkflowById = async (req: Request, res: Response) => {
   const orgId = req.user!.orgId;
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   const workflow = await prisma.workflow.findFirst({
     where: { id, orgId },
@@ -62,7 +65,7 @@ export const getWorkflowById = async (req: Request, res: Response) => {
 
 export const saveWorkflow = async (req: Request, res: Response) => {
   const orgId = req.user!.orgId;
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const { nodes, edges, viewport } = req.body;
 
   const workflow = await prisma.workflow.findFirst({
@@ -121,7 +124,7 @@ export const saveWorkflow = async (req: Request, res: Response) => {
 
 export const deleteWorkflow = async (req: Request, res: Response) => {
   const orgId = req.user!.orgId;
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   const workflow = await prisma.workflow.findFirst({
     where: { id, orgId }

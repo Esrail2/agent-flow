@@ -88,10 +88,10 @@ export class WorkflowService {
         });
 
         // Run agent
-        const response = await ChatService.handleMessage(tempConv.id, prompt, data.agentId, orgId);
+        const response = await ChatService.processMessage(orgId, data.agentId, prompt);
         
-        nodeResults.set(nodeId, response);
-        currentInput = response; // Output becomes input for the next node
+        nodeResults.set(nodeId, response.content);
+        currentInput = response.content; // Output becomes input for the next node
       }
     }
 

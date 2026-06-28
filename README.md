@@ -1,121 +1,112 @@
-# AgentFlow — AI Business Automation Platform
+# AgentFlow 🤖⚡
 
-AgentFlow is a professional-grade, multi-tenant AI Business Automation Platform. It orchestrates Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), Tool Calling, and sequential Multi-Agent Workflows to create a centralized productivity suite for enterprises.
+**The Ultimate AI-Powered Business Automation Platform**
 
----
+AgentFlow is an enterprise-grade AI automation platform that unifies Large Language Models (LLMs), Retrieval-Augmented Generation (RAG), and Multi-Agent Workflows to streamline customer support, knowledge management, lead handling, and internal business operations. 
 
-## 🎯 What is the Purpose of AgentFlow?
-
-The primary objective of AgentFlow is to automate operational business tasks using Artificial Intelligence. It eliminates manual labor and time spent on customer support, data analysis, and workflow coordination by utilizing AI agent networks and sequential processing pipelines.
-
-It acts as a centralized control center for companies where multiple users can upload their own proprietary data, build custom chatbots, and assign tasks to specialized AI agents.
+![AgentFlow Architecture](https://via.placeholder.com/1000x500?text=AgentFlow+Platform)
 
 ---
 
-## 💼 Real-World Use Cases
+## 🌟 Key Features
 
-* **1. Intelligent Customer Support:** Upload company documents (such as refund policies, product specs, or user guides) via the RAG engine to instantiate context-aware chat assistants that resolve inquiries instantly.
-* **2. Automated Multi-Agent Workflows:** Combine multiple agents to execute complex, multi-step tasks. For example: one agent reads customer emails, a second queries database records for lookup, and a third drafts a personalized email response.
-* **3. Lead Qualification & CRM Integration:** Interact with site visitors to understand requirements, gather contact details, and save qualified leads into CRM databases automatically.
-* **4. Enterprise Knowledge Search:** Extract summaries and answer questions from thousands of pages of internal company handbooks, policy guides, and knowledge bases.
-* **5. Departmental Workspace Isolation:** Declare independent team workspaces (e.g., Sales, Marketing, Support) so that each division has access only to their respective file directories, database indexes, and agent configurations.
-
----
-
-## 🚀 Key Features
-
-* **Multi-Tenant Organization Architecture:** Independent tenant boundaries with organization level custom settings, subscriptions, and usage analytics.
-* **Workspace Isolation:** Sub-workspace (teams) isolation with dedicated agent configurations, member groups, and history streams.
-* **Granular Role-Based Access Control (RBAC):** Super Admin, Organization Owner, and Team Member roles guarding API gateways and UI controls.
-* **Retrieval-Augmented Generation (RAG):** Native processing engine uploading files (PDF, DOCX, TXT), generating embeddings, and indexing them inside a vector store (Qdrant).
-* **Multi-Agent Systems & Chains:** Build specialist agent pools equipped with unique system parameters and modular tools, chainable into execution workflows.
+- **Multi-Agent Workflow Engine:** Visually design and automate pipelines where specialized agents (Manager, Research, Writer, Reviewer) collaborate to solve complex tasks.
+- **RAG-Powered Knowledge Base:** Upload PDFs, DOCXs, and TXTs to build an embedded vector database for accurate, context-aware AI responses.
+- **Dynamic Tool Calling:** Native integrations for external tools including Weather, Email generation, CRM sync, and internal Databases.
+- **Organization & Role Management:** Super Admin, Organization Owner, and Team Member roles for secure, scalable multi-tenant deployments.
+- **Analytics & Billing:** Built-in Stripe subscription management (Free, Pro, Enterprise) with resource limits and usage metrics.
 
 ---
 
-## 🛠 Tech Stack
+## 🏗️ System Architecture & Design
 
-| Domain | Technologies |
-| :--- | :--- |
-| **Monorepo / Build** | Turborepo, PNPM Workspaces, TypeScript base configurations |
-| **Frontend UI** | Next.js (App Router), Redux Toolkit, RTK Query, Tailwind CSS, Lucide Icons |
-| **Backend API** | Express.js, TypeScript, NodeMailer, JWT |
-| **Database & ORM** | PostgreSQL 16, Prisma ORM (Client singleton wrapper) |
-| **Caching & PubSub** | Redis 7 |
-| **Vector Indexing** | Qdrant Vector DB |
+AgentFlow utilizes a highly scalable, decoupled monorepo architecture designed for performance and maintainability.
 
----
+### High-Level Architecture
 
-## 📁 Project Architecture
-
-```txt
-agent-flow/
-├── apps/
-│   ├── api/                   # Express.js backend server
-│   └── web/                   # Next.js App Router client application
-├── packages/
-│   ├── database/              # Prisma Schema, generated client, and seed scripts
-│   └── shared/                # Zod validation schemas, API schemas, and constants
-├── docker-compose.yml         # Dev services setup (Postgres + Redis + Qdrant)
-├── package.json               # Root workspace manifest
-├── pnpm-workspace.yaml        # Workspace configuration
-└── turbo.json                 # Turborepo task pipeline configuration
+```mermaid
+graph TD;
+    Client[Web Client - Next.js] --> API[Node.js / Express API];
+    API --> DB[(PostgreSQL + Prisma)];
+    API --> Redis[(Redis Cache)];
+    API --> VectorDB[(Qdrant Vector DB)];
+    API --> AI[OpenAI / OpenRouter / LangChain];
+    API --> Storage[AWS S3 / Cloudinary];
+    API --> Stripe[Stripe Billing];
 ```
 
+### Tech Stack
+
+- **Frontend:** Next.js (TypeScript), Tailwind CSS, ShadCN UI, Redux Toolkit, React Flow (for visual workflow builder).
+- **Backend:** Node.js, Express.js, TypeScript.
+- **Database & ORM:** PostgreSQL, Prisma ORM.
+- **AI Infrastructure:** OpenAI API, OpenRouter API, LangChain, LangGraph.
+- **Vector Search:** Qdrant.
+- **Infrastructure:** Redis (Caching), JWT (Auth), AWS S3/Cloudinary (Storage), Stripe (Payments).
+
 ---
 
-## ⚡ Quick Start
+## 🚀 Getting Started
 
-### 1. Prerequisites
-Ensure you have the following installed on your machine:
-* [Node.js](https://nodejs.org/) (v18+ recommended)
-* [PNPM](https://pnpm.io/) (`npm i -g pnpm`)
-* [Docker & Docker Compose](https://www.docker.com/)
+### Prerequisites
 
-### 2. Clone and Install Dependencies
+- Node.js (v18+)
+- pnpm (v8+)
+- PostgreSQL
+- Redis
+- Qdrant Vector Database
+
+### 1. Clone the repository
+
 ```bash
-git clone https://github.com/Esrail2/agent-flow.git
+git clone https://github.com/your-org/agent-flow.git
 cd agent-flow
+```
+
+### 2. Install dependencies
+
+```bash
 pnpm install
 ```
 
-### 3. Spin Up Infrastructure Services
-Start the local database, cache, and vector store instances:
+
+### 4. Database Setup
+
 ```bash
-docker compose up -d
+pnpm --filter @agentflow/database prisma generate
+pnpm --filter @agentflow/database prisma db push
 ```
 
-### 4. Database Setup & Seeding
-Configure your connection URL in `apps/api/.env` and `packages/database/.env`, then run migrations and seed dev accounts:
-```bash
-# Generate Prisma Client & Migrate PostgreSQL
-pnpm --filter @agentflow/database db:migrate
+### 5. Run the Application (Development)
 
-# Run Development Database Seeding
-pnpm --filter @agentflow/database db:seed
-```
+Start the entire monorepo in development mode:
 
-### 5. Run Development Server
-Start both Next.js frontend and Express API backend in concurrent hot-reload mode:
 ```bash
 pnpm dev
 ```
-- **Frontend Dashboard:** `http://localhost:3000`
-- **Backend API Server:** `http://localhost:4000/api`
+- **Web App:** http://localhost:3000
+- **API Server:** http://localhost:5000
+
+### 6. Production Build
+
+To compile the TypeScript backend and optimize the Next.js frontend for production:
+
+```bash
+pnpm build
+pnpm start
+```
 
 ---
 
-## 🗺 Platform Roadmap
+## 🛡️ Security Best Practices
 
-* **[x] Phase 1:** Monorepo Workspace, TS configurations, and DB seeding foundation.
-* **[x] Phase 2:** JWT Authentication, verification, and frontend auth flows.
-* **[x] Phase 3:** Workspace Management, Organizations Settings, and teammate invitations.
-* **[ ] Phase 4:** RAG Engine (PDF Chunking, Embeddings, Qdrant Indexing).
-* **[ ] Phase 5:** AI Chat Assistant & Tool Calling.
-* **[ ] Phase 6:** Multi-Agent Workflow Engine.
-* **[ ] Phase 7:** Admin Analytics Dashboard.
-* **[ ] Phase 8:** Billing integration (Stripe) and Production Deployment.
+- **Authentication:** Stateless JWT-based authentication with strict role-based access control (RBAC).
+- **Rate Limiting:** Protects AI endpoints from abuse and prevents API cost overruns.
+- **Data Isolation:** Organization ID scoping across all database queries ensures strict multi-tenant data isolation and privacy.
+- **Password Hashing:** Robust Bcrypt hashing for all user credentials.
 
 ---
 
-## 📄 License
-This project is licensed under the [MIT License](LICENSE).
+## 📜 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

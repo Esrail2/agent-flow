@@ -111,11 +111,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="p-4 border-t border-zinc-900 space-y-4">
             <div className="flex items-center gap-3 px-2">
               <div className="h-9 w-9 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center font-bold text-blue-400 uppercase">
-                {user.name.charAt(0)}
+                {user?.name?.charAt(0) || 'U'}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-zinc-200 truncate">{user.name}</p>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider truncate">{user.role}</p>
+                <p className="text-xs font-semibold text-zinc-200 truncate">{user?.name || 'User'}</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-wider truncate">{user?.role}</p>
               </div>
             </div>
 

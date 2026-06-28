@@ -80,7 +80,7 @@ export const getAllOrganizations = async (req: Request, res: Response) => {
  * DELETE /api/admin/organizations/:id
  */
 export const deleteOrganization = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const org = await prisma.organization.findUnique({ where: { id } });
   if (!org) throw new AppError('Organization not found', HTTP_STATUS.NOT_FOUND);
 
@@ -125,7 +125,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
  * PUT /api/admin/users/:id/role
  */
 export const updateUserRole = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const { role } = req.body;
 
   const validRoles = ['SUPER_ADMIN', 'ORG_OWNER', 'TEAM_MEMBER'];
@@ -149,7 +149,7 @@ export const updateUserRole = async (req: Request, res: Response) => {
  * PUT /api/admin/organizations/:id/plan
  */
 export const updateOrgPlan = async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const { plan } = req.body;
 
   const validPlans = ['FREE', 'PRO', 'ENTERPRISE'];
@@ -167,4 +167,63 @@ export const updateOrgPlan = async (req: Request, res: Response) => {
   });
 
   res.status(HTTP_STATUS.OK).json({ success: true, data: updated });
+};
+
+/**
+ * GET /api/admin/subscriptions
+ */
+export const getAllSubscriptions = async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const skip = (page - 1) * limit;
+
+  const [subscriptions, total] = await Promise.all([
+    prisma.subscription.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        organization: { select: { id: true, name: true, owner: { select: { email: true } } } },
+      },
+    }),
+    prisma.subscription.count(),
+  ]);
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: subscriptions,
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  });
+};
+
+/**
+ * GET /api/admin/payments
+ */
+export const getAllPayments = async (req: Request, res: Response) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const skip = (page - 1) * limit;
+
+  const [payments, total] = await Promise.all([
+    prisma.payment.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        subscription: {
+          select: {
+            plan: true,
+            organization: { select: { name: true } }
+          }
+        }
+      },
+    }),
+    prisma.payment.count(),
+  ]);
+
+  res.status(HTTP_STATUS.OK).json({
+    success: true,
+    data: payments,
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  });
 };

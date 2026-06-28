@@ -6,8 +6,149 @@ import { AppError } from '../../middleware/error.middleware.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../lib/jwt.js';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../../lib/email.js';
 import type { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput, AuthTokens, UserProfile } from '@agentflow/shared';
+import { OAuth2Client } from 'google-auth-library';
+import { config } from '../../config/index.js';
+
+const googleClient = new OAuth2Client(
+  config.google.clientId,
+  config.google.clientSecret,
+  config.google.callbackUrl
+);
 
 export class AuthService {
+  /**
+   * Get Google Auth URL
+   */
+  static getGoogleAuthUrl(): string {
+    return googleClient.generateAuthUrl({
+      access_type: 'offline',
+      scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'],
+      prompt: 'consent'
+    });
+  }
+
+  /**
+   * Handle Google OAuth Callback
+   */
+  static async handleGoogleCallback(code: string): Promise<{ user: UserProfile; tokens: AuthTokens }> {
+    const { tokens } = await googleClient.getToken(code);
+    
+    if (!tokens.id_token) {
+      throw new AppError('No ID token in Google response', HTTP_STATUS.BAD_REQUEST);
+    }
+
+    const ticket = await googleClient.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: config.google.clientId,
+    });
+    
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      throw new AppError('Invalid Google Token', HTTP_STATUS.UNAUTHORIZED);
+    }
+
+    const email = payload.email;
+    const name = payload.name || 'Google User';
+    const avatar = payload.picture;
+    const googleId = payload.sub;
+
+    let user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        ownedOrgs: { take: 1 },
+        teamMembers: { take: 1, include: { team: { select: { orgId: true } } } },
+      }
+    });
+
+    if (!user) {
+      const orgName = `${name}'s Workspace`;
+      let orgSlug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+      if (!orgSlug || orgSlug === '-') orgSlug = 'workspace';
+      orgSlug = `${orgSlug}-${crypto.randomBytes(3).toString('hex')}`;
+
+      const result = await prisma.$transaction(async (tx) => {
+        const newUser = await tx.user.create({
+          data: {
+            email,
+            name,
+            avatar,
+            role: 'ORG_OWNER',
+            emailVerified: true,
+            googleId,
+          },
+        });
+
+        const org = await tx.organization.create({
+          data: { name: orgName, slug: orgSlug, ownerId: newUser.id, plan: 'FREE' },
+        });
+
+        const team = await tx.team.create({
+          data: { name: 'General', orgId: org.id },
+        });
+
+        await tx.teamMember.create({
+          data: { teamId: team.id, userId: newUser.id, role: 'ADMIN', inviteAccepted: true },
+        });
+
+        await tx.subscription.create({
+          data: { orgId: org.id, plan: 'FREE', status: 'ACTIVE' },
+        });
+
+        return { user: newUser, org };
+      });
+
+      user = await prisma.user.findUnique({
+        where: { id: result.user.id },
+        include: {
+          ownedOrgs: { take: 1 },
+          teamMembers: { take: 1, include: { team: { select: { orgId: true } } } },
+        }
+      }) as any;
+    } else if (!user.googleId) {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { googleId, avatar: user.avatar || avatar, emailVerified: true },
+        include: {
+          ownedOrgs: { take: 1 },
+          teamMembers: { take: 1, include: { team: { select: { orgId: true } } } },
+        }
+      });
+    }
+
+    const orgId = user!.ownedOrgs[0]?.id || user!.teamMembers[0]?.team.orgId;
+
+    const accessToken = signAccessToken({
+      userId: user!.id,
+      email: user!.email,
+      role: user!.role,
+      orgId,
+    });
+
+    const refreshToken = signRefreshToken({
+      userId: user!.id,
+      email: user!.email,
+      role: user!.role,
+    });
+
+    await prisma.user.update({
+      where: { id: user!.id },
+      data: { refreshToken },
+    });
+
+    return {
+      user: {
+        id: user!.id,
+        email: user!.email,
+        name: user!.name,
+        avatar: user!.avatar,
+        role: user!.role,
+        emailVerified: user!.emailVerified,
+        createdAt: user!.createdAt.toISOString(),
+      },
+      tokens: { accessToken, refreshToken },
+    };
+  }
+
   /**
    * Register a new User and create an Organization/Team automatically
    */

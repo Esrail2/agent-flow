@@ -11,6 +11,8 @@ import {
 const router = Router();
 
 // Public routes
+router.get('/google', AuthController.google);
+router.get('/google/callback', AuthController.googleCallback);
 router.post('/register', validate(registerSchema), AuthController.register);
 router.post('/login', validate(loginSchema), AuthController.login);
 router.post('/refresh', AuthController.refresh);

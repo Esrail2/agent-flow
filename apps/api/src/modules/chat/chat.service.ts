@@ -41,16 +41,12 @@ export class ChatService {
     }
 
     try {
-      // Setup Tools
       const agentTools: any[] = (agent.tools as any[]) || [];
-      const hasWebSearch = agentTools.some(t => t.name === 'web_search');
-      const hasEmailSender = agentTools.some(t => t.name === 'email_sender');
-      const hasKnowledgeSearch = agentTools.some(t => t.name === 'knowledge_search');
-      const hasCrm = agentTools.some(t => t.name === 'create_lead');
-      
       const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [];
       
-      if (hasWebSearch) {
+      const { WeatherToolSchema, executeWeatherTool, EmailToolSchema, executeEmailTool, CrmToolSchema, executeCrmTool } = await import('../agent/tools/index.js');
+      
+      if (agentTools.some(t => t.name === 'web_search')) {
         tools.push({
           type: "function",
           function: {
@@ -67,26 +63,11 @@ export class ChatService {
         });
       }
 
-      if (hasEmailSender) {
-        tools.push({
-          type: "function",
-          function: {
-            name: "email_sender",
-            description: "Send an email to a specific recipient. Use this when the user asks you to send an email to someone.",
-            parameters: {
-              type: "object",
-              properties: {
-                to: { type: "string", description: "The recipient's email address" },
-                subject: { type: "string", description: "The subject of the email" },
-                body: { type: "string", description: "The HTML body content of the email" }
-              },
-              required: ["to", "subject", "body"],
-            },
-          },
-        });
+      if (agentTools.some(t => t.name === 'email_sender')) {
+        tools.push(EmailToolSchema as any);
       }
 
-      if (hasKnowledgeSearch) {
+      if (agentTools.some(t => t.name === 'knowledge_search')) {
         tools.push({
           type: "function",
           function: {
@@ -103,26 +84,12 @@ export class ChatService {
         });
       }
 
-      if (hasCrm) {
-        tools.push({
-          type: "function",
-          function: {
-            name: "create_lead",
-            description: "Create a new CRM lead when a potential customer shows interest. Extract their name, email, phone, company from the conversation.",
-            parameters: {
-              type: "object",
-              properties: {
-                name: { type: "string", description: "Full name of the lead" },
-                email: { type: "string", description: "Email address" },
-                phone: { type: "string", description: "Phone number" },
-                company: { type: "string", description: "Company name" },
-                source: { type: "string", description: "How the lead was acquired (e.g. 'Chat Widget', 'Email')" },
-                notes: { type: "string", description: "Any relevant notes from the conversation" },
-              },
-              required: ["name"],
-            },
-          },
-        });
+      if (agentTools.some(t => t.name === 'create_lead')) {
+        tools.push(CrmToolSchema as any);
+      }
+
+      if (agentTools.some(t => t.name === 'get_current_weather')) {
+        tools.push(WeatherToolSchema as any);
       }
 
       const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -145,63 +112,30 @@ export class ChatService {
 
         for (const toolCall of responseMessage.tool_calls) {
           if (toolCall.type !== 'function') continue;
+          const args = JSON.parse(toolCall.function.arguments);
 
           if (toolCall.function.name === 'web_search') {
             try {
-              const args = JSON.parse(toolCall.function.arguments);
               console.log(`[Agent Tool Execution] Web Search for: "${args.query}"`);
-              
               const searchResult = await tvly.search(args.query, { searchDepth: "advanced", maxResults: 3 });
-              
-              // Add the tool result to history
               messages.push({
                 role: 'tool',
                 tool_call_id: toolCall.id,
                 content: JSON.stringify(searchResult.results.map(r => ({ title: r.title, content: r.content }))),
               });
             } catch (err) {
-              console.error('Tavily search failed:', err);
-              messages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: "Error: Web search failed to retrieve results.",
-              });
+              messages.push({ role: 'tool', tool_call_id: toolCall.id, content: "Error: Web search failed." });
             }
           }
           else if (toolCall.function.name === 'email_sender') {
-            try {
-              const args = JSON.parse(toolCall.function.arguments);
-              console.log(`[Agent Tool Execution] Sending Email to: "${args.to}"`);
-              
-              await sendEmail({
-                to: args.to,
-                subject: args.subject,
-                html: args.body,
-              });
-              
-              // Add the tool result to history
-              messages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `Success: Email sent to ${args.to} with subject "${args.subject}".`,
-              });
-            } catch (err) {
-              console.error('Email sending failed:', err);
-              messages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: "Error: Failed to send the email due to a system error.",
-              });
-            }
+            console.log(`[Agent Tool Execution] Sending Email to: "${args.to}"`);
+            const result = await executeEmailTool(args);
+            messages.push({ role: 'tool', tool_call_id: toolCall.id, content: result });
           }
           else if (toolCall.function.name === 'knowledge_search') {
             try {
-              const args = JSON.parse(toolCall.function.arguments);
               console.log(`[Agent Tool Execution] Knowledge Search for: "${args.query}"`);
-              
               const searchResults = await RagService.searchKnowledgeBase(orgId, args.query, 3);
-              
-              // Add the tool result to history
               messages.push({
                 role: 'tool',
                 tool_call_id: toolCall.id,
@@ -210,45 +144,18 @@ export class ChatService {
                   : "No relevant information found in the knowledge base.",
               });
             } catch (err) {
-              console.error('Knowledge search failed:', err);
-              messages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: "Error: Failed to search the knowledge base.",
-              });
+              messages.push({ role: 'tool', tool_call_id: toolCall.id, content: "Error: Failed to search the knowledge base." });
             }
           }
           else if (toolCall.function.name === 'create_lead') {
-            try {
-              const args = JSON.parse(toolCall.function.arguments);
-              console.log(`[Agent Tool Execution] Creating Lead for: "${args.name}"`);
-              
-              const lead = await prisma.lead.create({
-                data: {
-                  name: args.name,
-                  email: args.email,
-                  phone: args.phone,
-                  company: args.company,
-                  source: args.source || 'AI Chat',
-                  notes: args.notes,
-                  status: 'NEW',
-                  orgId,
-                },
-              });
-
-              messages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `Success: Lead created for ${lead.name} (ID: ${lead.id}).`,
-              });
-            } catch (err) {
-              console.error('Lead creation failed:', err);
-              messages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: "Error: Failed to create the lead.",
-              });
-            }
+            console.log(`[Agent Tool Execution] Creating Lead for: "${args.name}"`);
+            const result = await executeCrmTool(args, { orgId });
+            messages.push({ role: 'tool', tool_call_id: toolCall.id, content: result });
+          }
+          else if (toolCall.function.name === 'get_current_weather') {
+            console.log(`[Agent Tool Execution] Fetching Weather for: "${args.location}"`);
+            const result = await executeWeatherTool(args);
+            messages.push({ role: 'tool', tool_call_id: toolCall.id, content: result });
           }
         }
 

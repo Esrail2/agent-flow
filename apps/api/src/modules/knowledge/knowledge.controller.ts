@@ -21,6 +21,9 @@ export class KnowledgeController {
 
       const originalName = req.file.originalname;
       
+      const { BillingService } = await import('../billing/billing.service.js');
+      await BillingService.checkLimit(orgId, 'documents');
+      
       // Process file in background (or await for MVP)
       const document = await RagService.processDocument(orgId, req.file, originalName);
 

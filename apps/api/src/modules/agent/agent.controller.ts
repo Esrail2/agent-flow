@@ -32,7 +32,7 @@ export class AgentController {
   static async getAgentById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const orgId = req.orgId;
-      const agentId = req.params.id;
+      const agentId = (req.params.id as string);
       if (!orgId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, error: 'No active organization context found' });
         return;
@@ -89,7 +89,7 @@ export class AgentController {
   static async updateAgent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const orgId = req.orgId;
-      const agentId = req.params.id;
+      const agentId = (req.params.id as string);
       
       if (!orgId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, error: 'No active organization context found' });
@@ -116,7 +116,7 @@ export class AgentController {
   static async deleteAgent(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const orgId = req.orgId;
-      const agentId = req.params.id;
+      const agentId = (req.params.id as string);
       
       if (!orgId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, error: 'No active organization context found' });

@@ -9,7 +9,7 @@ export class ChatController {
   static async processMessage(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const orgId = req.orgId;
-      const agentId = req.params.id;
+      const agentId = (req.params.id as string);
       
       if (!orgId) {
         res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, error: 'No active organization context found' });

@@ -6,6 +6,7 @@ import { knowledgeRoutes } from '../modules/knowledge/knowledge.routes.js';
 import workflowRoutes from '../modules/workflow/workflow.routes.js';
 import leadsRoutes from '../modules/leads/leads.routes.js';
 import adminRoutes from '../modules/admin/admin.routes.js';
+import billingRoutes from '../modules/billing/billing.routes.js';
 
 const router: Router = Router();
 
@@ -17,6 +18,7 @@ router.use('/knowledge', knowledgeRoutes);
 router.use('/workflows', workflowRoutes);
 router.use('/leads', leadsRoutes);
 router.use('/admin', adminRoutes);
+router.use('/billing', billingRoutes);
 
 /**
  * Health check endpoint

@@ -17,4 +17,7 @@ router.put('/organizations/:id/plan', adminController.updateOrgPlan);
 router.get('/users', adminController.getAllUsers);
 router.put('/users/:id/role', adminController.updateUserRole);
 
+router.get('/subscriptions', adminController.getAllSubscriptions);
+router.get('/payments', adminController.getAllPayments);
+
 export default router;

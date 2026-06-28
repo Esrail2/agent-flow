@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service.js';
 import { HTTP_STATUS, type ApiResponse } from '@agentflow/shared';
+import { config } from '../../config/index.js';
 
 // Helper to set refresh token in httpOnly cookie
 function setRefreshCookie(res: Response, token: string): void {
@@ -22,6 +23,40 @@ function clearRefreshCookie(res: Response): void {
 }
 
 export class AuthController {
+  /**
+   * GET /api/auth/google
+   */
+  static google(req: Request, res: Response): void {
+    const url = AuthService.getGoogleAuthUrl();
+    res.redirect(url);
+  }
+
+  /**
+   * GET /api/auth/google/callback
+   */
+  static async googleCallback(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const code = req.query.code as string;
+      if (!code) {
+        res.redirect(`${config.clientUrl}/login?error=GoogleAuthFailed`);
+        return;
+      }
+
+      const result = await AuthService.handleGoogleCallback(code);
+      setRefreshCookie(res, result.tokens.refreshToken);
+
+      // Redirect back to frontend with a special token or just redirect to dashboard
+      // Since it's a browser redirect, we can't easily return JSON with the access token.
+      // Usually, we redirect to a frontend callback page that reads a temporary token,
+      // or we just set the refresh cookie and redirect to dashboard, letting the frontend
+      // auto-fetch the session (since we built SessionProvider!).
+      res.redirect(`${config.clientUrl}/dashboard`);
+    } catch (error) {
+      console.error('Google Auth Error:', error);
+      res.redirect(`${config.clientUrl}/login?error=GoogleAuthFailed`);
+    }
+  }
+
   /**
    * POST /api/auth/register
    */

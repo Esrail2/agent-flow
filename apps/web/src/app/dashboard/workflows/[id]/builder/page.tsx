@@ -31,8 +31,8 @@ function BuilderCanvas({ id }: { id: string }) {
   const { data: agentsData, isLoading: isAgentsLoading } = useGetAgentsQuery();
   const [saveWorkflow, { isLoading: isSaving }] = useSaveWorkflowMutation();
   
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   
   // Initialize state from fetched data

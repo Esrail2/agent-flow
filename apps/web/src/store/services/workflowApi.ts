@@ -4,14 +4,15 @@ import { baseQueryWithReauth } from './apiSlice';
 export interface WorkflowNode {
   id: string;
   type: string;
-  position: { x: number; y: number };
+  positionX: number;
+  positionY: number;
   data: any;
 }
 
 export interface WorkflowEdge {
   id: string;
-  source: string;
-  target: string;
+  sourceId: string;
+  targetId: string;
   sourceHandle?: string;
   targetHandle?: string;
 }
@@ -53,7 +54,7 @@ export const workflowApi = createApi({
       invalidatesTags: ['Workflow'],
     }),
 
-    saveWorkflow: builder.mutation<{ success: boolean }, { id: string; nodes: WorkflowNode[]; edges: WorkflowEdge[]; viewport: any }>({
+    saveWorkflow: builder.mutation<{ success: boolean }, { id: string; nodes: any[]; edges: any[]; viewport: any }>({
       query: ({ id, ...body }) => ({
         url: `/workflows/${id}/save`,
         method: 'POST',

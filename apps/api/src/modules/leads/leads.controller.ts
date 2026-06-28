@@ -47,7 +47,7 @@ export const createLead = async (req: Request, res: Response) => {
 
 export const updateLead = async (req: Request, res: Response) => {
   const orgId = req.user!.orgId as string;
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { name, email, phone, company, source, notes, status } = req.body;
 
   const lead = await prisma.lead.findFirst({ where: { id, orgId } });
@@ -63,7 +63,7 @@ export const updateLead = async (req: Request, res: Response) => {
 
 export const deleteLead = async (req: Request, res: Response) => {
   const orgId = req.user!.orgId as string;
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   const lead = await prisma.lead.findFirst({ where: { id, orgId } });
   if (!lead) throw new AppError('Lead not found', HTTP_STATUS.NOT_FOUND);
